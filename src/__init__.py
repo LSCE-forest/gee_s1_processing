@@ -1,3 +1,5 @@
 """S1 processing package."""
 
-import wrapper
+from . import wrapper
+
+__all__ = ["wrapper"]
