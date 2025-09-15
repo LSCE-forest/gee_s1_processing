@@ -13,14 +13,42 @@ from ee.imagecollection import ImageCollection
 import border_noise_correction as bnc
 import speckle_filter as sf
 import terrain_flattening as trf
-import helper
-
+from dataclasses import dataclass
 
 ###########################################
 # DO THE JOB
 ###########################################
 
-def s1_preproc(col: ImageCollection, params: dict[str,str|int]):
+@dataclass
+class S1Filter:
+    """The structured type for configuring speckle filters to apply to Sentinel-1
+    apply_border_noise_correction : boolean
+        Apply border noise correction if True        
+    apply_terrain_flattening : boolean
+        Apply terrain flattening if True
+    apply_speckle_filtering : boolean
+        Apply speckel filtering if True
+    dem : string
+        Digital elevation Model used for terrain corrections. See
+    speckle_filter_framework : string
+    speckle_filter : string
+    speckle_filter_kernel_size : integer
+    speckle_filter_nr_of_images : integer
+    terrain_flattening_model : string
+    terrain_flattening_additional_layover_shadow_buffer :  integer
+    """
+    apply_border_noise_correction: bool = False
+    apply_terrain_flattening: bool = False
+    apply_speckle_filtering: bool = False
+    dem: str = 'USGS/SRTMGL1_003'
+    speckle_filter_framework: str = 'MONO'
+    speckle_filter: str = 'BOXCAR'
+    speckle_filter_kernel_size: int = 3
+    speckle_filter_nr_of_images: int = 10
+    terrain_flattening_model: str = 'DIRECT'
+    terrain_flattening_additional_layover_shadow_buffer: int = 0
+
+def s1_preproc(col: ImageCollection, filter_params: S1Filter):
     """
     Applies preprocessing to a collection of S1 images to return an analysis ready sentinel-1 data.
 
@@ -28,8 +56,8 @@ def s1_preproc(col: ImageCollection, params: dict[str,str|int]):
     ----------
     col : ImageColletion
         GEE image collection to be preprocessed
-    params : Dictionary
-        These parameters determine the data selection and image processing parameters.
+    filter_params : S1Filter
+        Parameter Dataclass that determines the data selection and image processing parameters.
 
     Raises
     ------
@@ -43,16 +71,16 @@ def s1_preproc(col: ImageCollection, params: dict[str,str|int]):
         A processed Sentinel-1 image collection
 
     """
-    APPLY_BORDER_NOISE_CORRECTION = params['APPLY_BORDER_NOISE_CORRECTION']
-    APPLY_TERRAIN_FLATTENING = params['APPLY_TERRAIN_FLATTENING']
-    APPLY_SPECKLE_FILTERING = params['APPLY_SPECKLE_FILTERING']
-    SPECKLE_FILTER_FRAMEWORK = params['SPECKLE_FILTER_FRAMEWORK']
-    SPECKLE_FILTER = params['SPECKLE_FILTER']
-    SPECKLE_FILTER_KERNEL_SIZE = params['SPECKLE_FILTER_KERNEL_SIZE']
-    SPECKLE_FILTER_NR_OF_IMAGES = params['SPECKLE_FILTER_NR_OF_IMAGES']
-    TERRAIN_FLATTENING_MODEL = params['TERRAIN_FLATTENING_MODEL']
-    DEM = params['DEM']
-    TERRAIN_FLATTENING_ADDITIONAL_LAYOVER_SHADOW_BUFFER = params['TERRAIN_FLATTENING_ADDITIONAL_LAYOVER_SHADOW_BUFFER']
+    APPLY_BORDER_NOISE_CORRECTION = filter_params.apply_border_noise_correction
+    APPLY_TERRAIN_FLATTENING = filter_params.apply_terrain_flattening
+    APPLY_SPECKLE_FILTERING = filter_params.apply_speckle_filtering
+    SPECKLE_FILTER_FRAMEWORK = filter_params.speckle_filter_framework
+    SPECKLE_FILTER = filter_params.speckle_filter
+    SPECKLE_FILTER_KERNEL_SIZE = filter_params.speckle_filter_kernel_size
+    SPECKLE_FILTER_NR_OF_IMAGES = filter_params.speckle_filter_nr_of_images
+    TERRAIN_FLATTENING_MODEL = filter_params.terrain_flattening_model
+    DEM = filter_params.dem
+    TERRAIN_FLATTENING_ADDITIONAL_LAYOVER_SHADOW_BUFFER = filter_params.terrain_flattening_additional_layover_shadow_buffer
     
     ###########################################
     # 1. CHECK PARAMETERS
