@@ -22,7 +22,7 @@ from . import terrain_flattening as trf
 ###########################################
 
 @dataclass
-class S1Filter:
+class S1FilterConfig:
     """The structured type for configuring speckle filters to apply to Sentinel-1
     apply_border_noise_correction : boolean
         Apply border noise correction if True        
