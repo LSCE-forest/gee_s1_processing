@@ -50,7 +50,7 @@ class S1FilterConfig:
     terrain_flattening_model: str = 'DIRECT'
     terrain_flattening_additional_layover_shadow_buffer: int = 0
 
-def s1_preproc(col: ImageCollection, filter_params: S1Filter):
+def s1_preproc(col: ImageCollection, filter_params: S1FilterConfig):
     """
     Applies preprocessing to a collection of S1 images to return an analysis ready sentinel-1 data.
 
