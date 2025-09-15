@@ -14,3 +14,7 @@ dependencies = [
 
 [tool.flit.module]
 name = "gee_s1_processing"
+
+[project.urls]
+source = "https://github.com/LSCE-forest/gee_s1_processing"
+tracker = "https://github.com/LSCE-forest/gee_s1_processing/issues"
