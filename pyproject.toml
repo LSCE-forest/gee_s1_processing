@@ -1,5 +1,5 @@
 [project]
-name = "gee-s1-processing"
+name = "gee_s1_processing"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
