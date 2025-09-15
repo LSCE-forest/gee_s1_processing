@@ -15,7 +15,6 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 license = { "file" = "LICENSE" }
-dynamic = ["version"]
 
 dependencies = [
     "earthengine-api>=1.6.6",
