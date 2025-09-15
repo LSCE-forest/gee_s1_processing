@@ -1,9 +1,9 @@
 [project]
 name = "gee_s1_processing"
 version = "0.1.0"
-description = "Add your description here"
+description = "S1 processing package."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.10"
 dependencies = [
     "earthengine-api>=1.6.6",
 ]
