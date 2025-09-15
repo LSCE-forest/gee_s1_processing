@@ -10,10 +10,12 @@ Description: A wrapper function to derive the Sentinel-1 ARD
 
 import ee
 from ee.imagecollection import ImageCollection
-import border_noise_correction as bnc
-import speckle_filter as sf
-import terrain_flattening as trf
 from dataclasses import dataclass
+
+from . import border_noise_correction as bnc
+from . import speckle_filter as sf
+from . import terrain_flattening as trf
+
 
 ###########################################
 # DO THE JOB
