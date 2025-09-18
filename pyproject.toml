@@ -29,3 +29,84 @@ include = ["gee_s1_processing/**"]
 [project.urls]
 source = "https://github.com/LSCE-forest/gee_s1_processing"
 tracker = "https://github.com/LSCE-forest/gee_s1_processing/issues"
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pre-commit",
+    "ruff",
+    "types-retry",
+    "types-requests",
+    "pydoclint[flake8]",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    # pydocstyle and pydoclint
+    # "D",
+    "DOC",
+    # flake8-use-pathlib
+    "PTH",
+    # flake8-logging
+    "LOG",
+    # flake8-no-pep420
+    "INP",
+    "PIE",
+    "T20",
+    # pytest
+    "PT",
+]
+ignore = ["DOC501", "DOC201"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.extend-per-file-ignores]
+"tests/*.py" = ["INP001"]
+"docs/**/*.py" = ["INP001"]
+
+[tool.pydoclint]
+style = "numpy"
+skip-checking-raises = true
+check-style-mismatch = true
+ignore = [
+    "DOC201",
+    "DOC202",
+    "DOC402",
+    "DOC403",
+    "DOC501",
+    "DOC501",
+] # ignore what ruff implements
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+line_length = 88
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow"]
+log_cli = true
+log_cli_level = "DEBUG"
+log_level = "DEBUG"
+
+[tool.pyright]
+typeCheckingMode = "off"
