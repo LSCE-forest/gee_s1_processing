@@ -32,6 +32,7 @@ tracker = "https://github.com/LSCE-forest/gee_s1_processing/issues"
 
 [project.optional-dependencies]
 dev = [
+    "dotenv",
     "pytest",
     "pre-commit",
     "ruff",
@@ -71,7 +72,7 @@ select = [
     # pytest
     "PT",
 ]
-ignore = ["DOC501", "DOC201"]
+ignore = ["DOC501", "DOC201", "E501"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
