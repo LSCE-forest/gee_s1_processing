@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
 Version: v1.2
-Date: 2021-04-01
+Date: 2025-09-19
 Authors: Mullissa A., Vollrath A., Braun, C., Slagter B., Balling J.,
 Gou Y., Gorelick N.,  Reiche J.
-Description: A wrapper function to derive the Sentinel-1 ARD
+Description: The modified wrapper function to derive the Sentinel-1 ARD
 """
 
 from dataclasses import dataclass
@@ -22,38 +22,91 @@ from . import terrain_flattening as trf
 
 
 @dataclass
-class S1FilterConfig:
-    """The structured type for configuring speckle
-    filters to apply to Sentinel-1
-    apply_border_noise_correction : boolean
-        Apply border noise correction if True
+class TerrainNormalizationConfig:
+    """The structured type to configure terrain normalization
     apply_terrain_flattening : boolean
         Apply terrain flattening if True
-    apply_speckle_filtering : boolean
-        Apply speckel filtering if True
     dem : string
-        Digital elevation Model used for terrain corrections. See
+        Digital elevation Model used for terrain corrections
+    terrain_flattening_model : string
+    terrain_flattening_additional_layover_shadow_buffer :  integer
+    angle_band : str
+        Name of the band giving information on the incidence angle.
+    """
+
+    terrain_flattening_model: str = "DIRECT"
+    terrain_flattening_additional_layover_shadow_buffer: int = 3
+    dem: str = "USGS/SRTMGL1_003"
+    angle_band: str = "angle"
+
+
+@dataclass
+class SpeckleFilterConfig:
+    """The structured type for configuring speckle
+    filters to apply to Sentinel-1
     speckle_filter_framework : string
     speckle_filter : string
     speckle_filter_kernel_size : integer
     speckle_filter_nr_of_images : integer
-    terrain_flattening_model : string
-    terrain_flattening_additional_layover_shadow_buffer :  integer
     """
 
-    apply_border_noise_correction: bool = True
-    apply_terrain_flattening: bool = True
-    apply_speckle_filtering: bool = True
-    dem: str = "USGS/SRTMGL1_003"
     speckle_filter_framework: str = "MONO"
     speckle_filter: str = "BOXCAR"
-    speckle_filter_kernel_size: int = 13
+    speckle_filter_kernel_size: int = 3
     speckle_filter_nr_of_images: int = 10
-    terrain_flattening_model: str = "DIRECT"
-    terrain_flattening_additional_layover_shadow_buffer: int = 0
 
 
-def s1_preproc(col: ImageCollection, filter_params: S1FilterConfig):
+def terrain_normalization_wrapper(
+    col: ImageCollection, terrain_normalization_params: TerrainNormalizationConfig
+) -> ImageCollection:
+    """
+    Applies terrain normalization to a collection of GEE images.
+
+    Parameters
+    ----------
+    col : ImageCollection
+        GEE image collection to apply terrain normalization to
+    terrain_normalization_params : TerrainNormalizationConfig
+        Parameter dataclass to configure the terrain normalization
+
+    Raises
+    ------
+    ValueError
+
+    Returns
+    -------
+    ImageCollection
+        Image Collection with normalized terrain.
+    """
+    TERRAIN_FLATTENING_MODEL = terrain_normalization_params.terrain_flattening_model or "VOLUME"
+    DEM = terrain_normalization_params.dem or "USGS/SRTMGL1_003"
+    TERRAIN_FLATTENING_ADDITIONAL_LAYOVER_SHADOW_BUFFER = (
+        terrain_normalization_params.terrain_flattening_additional_layover_shadow_buffer or 0
+    )
+    ANGLE_BAND = terrain_normalization_params.angle_band or "angle"
+
+    if ANGLE_BAND not in col.first().bandNames().getInfo():
+        raise ValueError(
+            "ERROR!!! Parameter ANGLE_BAND does not correspond to any band of the image collection"
+        )
+    if TERRAIN_FLATTENING_MODEL not in ["DIRECT", "VOLUME"]:
+        raise ValueError("ERROR!!! Parameter TERRAIN_FLATTENING_MODEL not correctly defined")
+    if TERRAIN_FLATTENING_ADDITIONAL_LAYOVER_SHADOW_BUFFER < 0:
+        raise ValueError(
+            "ERROR!!! TERRAIN_FLATTENING_ADDITIONAL_LAYOVER_SHADOW_BUFFER not correctly defined"
+        )
+
+    col = trf.slope_correction(
+        col,
+        TERRAIN_FLATTENING_MODEL,
+        ee.Image(DEM),
+        TERRAIN_FLATTENING_ADDITIONAL_LAYOVER_SHADOW_BUFFER,
+    )
+    print("Terrain normalization is completed")  # noqa: T201, E501
+    return col
+
+
+def speckle_filter_wrapper(col: ImageCollection, speckle_filter_params: SpeckleFilterConfig):
     """
     Applies preprocessing to a collection of S1 images to return
     an analysis ready sentinel-1 data.
@@ -62,15 +115,13 @@ def s1_preproc(col: ImageCollection, filter_params: S1FilterConfig):
     ----------
     col : ImageCollection
         GEE image collection to be preprocessed
-    filter_params : S1FilterConfig
+    speckle_filter_params : SpeckleFilterConfig
         Parameter Dataclass that determines the data selection
         and image processing parameters.
 
     Raises
     ------
     ValueError
-    Warning
-
 
     Returns
     -------
@@ -78,115 +129,75 @@ def s1_preproc(col: ImageCollection, filter_params: S1FilterConfig):
         A processed Sentinel-1 image collection
 
     """
-    APPLY_BORDER_NOISE_CORRECTION = filter_params.apply_border_noise_correction
-    APPLY_TERRAIN_FLATTENING = filter_params.apply_terrain_flattening
-    APPLY_SPECKLE_FILTERING = filter_params.apply_speckle_filtering
-    SPECKLE_FILTER_FRAMEWORK = filter_params.speckle_filter_framework
-    SPECKLE_FILTER = filter_params.speckle_filter
-    SPECKLE_FILTER_KERNEL_SIZE = filter_params.speckle_filter_kernel_size
-    SPECKLE_FILTER_NR_OF_IMAGES = filter_params.speckle_filter_nr_of_images
-    TERRAIN_FLATTENING_MODEL = filter_params.terrain_flattening_model
-    DEM = filter_params.dem
-    TERRAIN_FLATTENING_ADDITIONAL_LAYOVER_SHADOW_BUFFER = (
-        filter_params.terrain_flattening_additional_layover_shadow_buffer
-    )
+    SPECKLE_FILTER_FRAMEWORK = speckle_filter_params.speckle_filter_framework or "MONO"
+    SPECKLE_FILTER = speckle_filter_params.speckle_filter or "BOXCAR"
+    SPECKLE_FILTER_KERNEL_SIZE = speckle_filter_params.speckle_filter_kernel_size or 3
+    SPECKLE_FILTER_NR_OF_IMAGES = speckle_filter_params.speckle_filter_nr_of_images or 10
 
-    ###########################################
-    # 1. CHECK PARAMETERS
-    ###########################################
+    if SPECKLE_FILTER_FRAMEWORK not in ["MONO", "MULTI"]:
+        raise ValueError("ERROR!!! SPECKLE_FILTER_FRAMEWORK not correctly defined")
 
-    if APPLY_BORDER_NOISE_CORRECTION is None:
-        APPLY_BORDER_NOISE_CORRECTION = True
-    if APPLY_TERRAIN_FLATTENING is None:
-        APPLY_TERRAIN_FLATTENING = True
-    if APPLY_SPECKLE_FILTERING is None:
-        APPLY_SPECKLE_FILTERING = True
-    if SPECKLE_FILTER_FRAMEWORK is None:
-        SPECKLE_FILTER_FRAMEWORK = "MULTI BOXCAR"
-    if SPECKLE_FILTER is None:
-        SPECKLE_FILTER = "GAMMA MAP"
-    if SPECKLE_FILTER_KERNEL_SIZE is None:
-        SPECKLE_FILTER_KERNEL_SIZE = 7
-    if SPECKLE_FILTER_NR_OF_IMAGES is None:
-        SPECKLE_FILTER_NR_OF_IMAGES = 10
-    if TERRAIN_FLATTENING_MODEL is None:
-        TERRAIN_FLATTENING_MODEL = "VOLUME"
-    if TERRAIN_FLATTENING_ADDITIONAL_LAYOVER_SHADOW_BUFFER is None:
-        TERRAIN_FLATTENING_ADDITIONAL_LAYOVER_SHADOW_BUFFER = 0
-
-    model_required = ["DIRECT", "VOLUME"]
-    if TERRAIN_FLATTENING_MODEL not in model_required:
-        raise ValueError("ERROR!!! Parameter TERRAIN_FLATTENING_MODEL not correctly defined")  # noqa: E501
-
-    frame_needed = ["MONO", "MULTI"]
-    if SPECKLE_FILTER_FRAMEWORK not in frame_needed:
-        raise ValueError("ERROR!!! SPECKLE_FILTER_FRAMEWORK not correctly defined")  # noqa: E501
-
-    format_sfilter = ["BOXCAR", "LEE", "GAMMA MAP", "REFINED LEE", "LEE SIGMA"]
-    if SPECKLE_FILTER not in format_sfilter:
+    if SPECKLE_FILTER not in ["BOXCAR", "LEE", "GAMMA MAP", "REFINED LEE", "LEE SIGMA"]:
         raise ValueError("ERROR!!! SPECKLE_FILTER not correctly defined")
 
-    if TERRAIN_FLATTENING_ADDITIONAL_LAYOVER_SHADOW_BUFFER < 0:
-        raise ValueError(
-            "ERROR!!! TERRAIN_FLATTENING_ADDITIONAL_LAYOVER_SHADOW_BUFFER not correctly defined"  # noqa: E501
-        )
-
     if SPECKLE_FILTER_KERNEL_SIZE <= 0:
-        raise ValueError("ERROR!!! SPECKLE_FILTER_KERNEL_SIZE not correctly defined")  # noqa: E501
+        raise ValueError("ERROR!!! SPECKLE_FILTER_KERNEL_SIZE not correctly defined")
 
     bands = col.first().bandNames().getInfo()
-    if not [
-        band
-        for band in bands
-        if band
-        in [
-            "VV",
-            "VH",
-        ]
-    ]:
-        raise Warning(
-            "Filters only apply to VH and VV bands. No gee_s1_ard filters have been applied"  # noqa: E501
-        )
-    ###########################################
-    # 2. ADDITIONAL BORDER NOISE CORRECTION
-    ###########################################
+    if not [band for band in bands if band in ["VV", "VH"]]:
+        raise ValueError("Filters only apply to VH and VV bands.")
 
-    if APPLY_BORDER_NOISE_CORRECTION:
+    if SPECKLE_FILTER_FRAMEWORK == "MONO":
+        col = ee.ImageCollection(
+            sf.MonoTemporal_Filter(col, SPECKLE_FILTER_KERNEL_SIZE, SPECKLE_FILTER)
+        )
+        print("Mono-temporal speckle filtering is completed")  # noqa: T201
+    else:
+        col = ee.ImageCollection(
+            sf.MultiTemporal_Filter(
+                col,
+                SPECKLE_FILTER_KERNEL_SIZE,
+                SPECKLE_FILTER,
+                SPECKLE_FILTER_NR_OF_IMAGES,
+            )
+        )
+        print("Multi-temporal speckle filtering is completed")  # noqa: T201
+
+    return col
+
+
+def get_analysis_ready_data(
+    col: ImageCollection,
+    speckle_filter_config: SpeckleFilterConfig | None = None,
+    terrain_normalization_config: TerrainNormalizationConfig | None = None,
+    additional_border_noise_correction: bool = False,
+) -> ImageCollection:
+    """Get analysis ready data.
+
+    Parameters
+    ----------
+    col : ImageCollection
+        GEE image collection to process>
+    speckle_filter_config : SpeckleFilterConfig | None
+        Configuration dataclass for speckle filtering. Defaults to None.
+    terrain_normalization_config : TerrainNormalizationConfig | None
+        Configuration dataclass for terrain normalization. Defaults to None.
+    additional_border_noise_correction : bool
+        Apply additional border noise correction on True. Defaults to False.
+
+    Returns
+    -------
+    ImageCollection
+        Analysis Ready Data.
+    """
+    if additional_border_noise_correction:
         col = col.map(bnc.f_mask_edges)
         print("Additional border noise correction is completed")  # noqa: T201
-    else:
-        col = col
 
-    ########################
-    # 3. SPECKLE FILTERING
-    #######################
+    if speckle_filter_config:
+        col = speckle_filter_wrapper(col, speckle_filter_config)
 
-    if APPLY_SPECKLE_FILTERING:
-        if SPECKLE_FILTER_FRAMEWORK == "MONO":
-            col = ee.ImageCollection(
-                sf.MonoTemporal_Filter(col, SPECKLE_FILTER_KERNEL_SIZE, SPECKLE_FILTER)  # noqa: E501
-            )
-            print("Mono-temporal speckle filtering is completed")  # noqa: T201
-        else:
-            col = ee.ImageCollection(
-                sf.MultiTemporal_Filter(
-                    col,
-                    SPECKLE_FILTER_KERNEL_SIZE,
-                    SPECKLE_FILTER,
-                    SPECKLE_FILTER_NR_OF_IMAGES,
-                )
-            )
-            print("Multi-temporal speckle filtering is completed")  # noqa: T201, E501
+    if terrain_normalization_config:
+        col = terrain_normalization_wrapper(col, terrain_normalization_config)
 
-    ########################
-    # 4. TERRAIN CORRECTION
-    #######################
-
-    if APPLY_TERRAIN_FLATTENING:
-        col = trf.slope_correction(
-            col,
-            TERRAIN_FLATTENING_MODEL,
-            ee.Image(DEM),
-            TERRAIN_FLATTENING_ADDITIONAL_LAYOVER_SHADOW_BUFFER,
-        )
     return col
