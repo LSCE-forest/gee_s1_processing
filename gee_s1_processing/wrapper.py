@@ -101,6 +101,7 @@ def terrain_normalization_wrapper(
         TERRAIN_FLATTENING_MODEL,
         ee.Image(DEM),
         TERRAIN_FLATTENING_ADDITIONAL_LAYOVER_SHADOW_BUFFER,
+        ANGLE_BAND,
     )
     print("Terrain normalization is completed")  # noqa: T201, E501
     return col
