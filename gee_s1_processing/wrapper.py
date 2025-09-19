@@ -34,7 +34,7 @@ class TerrainNormalizationConfig:
         Name of the band giving information on the incidence angle.
     """
 
-    terrain_flattening_model: str = "DIRECT"
+    terrain_flattening_model: str = "VOLUME"
     terrain_flattening_additional_layover_shadow_buffer: int = 3
     dem: str = "USGS/SRTMGL1_003"
     angle_band: str = "angle"
