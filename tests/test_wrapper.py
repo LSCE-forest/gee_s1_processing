@@ -13,4 +13,4 @@ def test_get_ard(s1_test_col):
     )
     assert (
         col.size().getInfo() == s1_test_col.size().getInfo()
-    ), f"Filtered count {col.size.getInfo()} != Unfiltered count {s1_test_col.size().getInfo()}"
+    ), f"Filtered count {col.size().getInfo()} != Unfiltered count {s1_test_col.size().getInfo()}"
