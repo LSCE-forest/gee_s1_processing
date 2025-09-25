@@ -1,19 +1,22 @@
-#!/usr/bin/env python3
-
 """
 Version: v1.0
 Date: 2021-03-12
 Description: This code is adopted from
 Vollrath, A., Mullissa, A., & Reiche, J. (2020).
 Angular-Based Radiometric Slope Correction for Sentinel-1 on Google Earth Engine.
-  Remote Sensing, 12(11), [1867]. https://doi.org/10.3390/rs12111867
+Remote Sensing, 12(11), [1867]. https://doi.org/10.3390/rs12111867
 """
 
+from __future__ import annotations
+
 import math
+from typing import TYPE_CHECKING
 
 import ee
-from ee.image import Image
-from ee.imagecollection import ImageCollection
+
+if TYPE_CHECKING:
+    from ee.image import Image
+    from ee.imagecollection import ImageCollection
 
 
 def slope_correction(
@@ -21,7 +24,6 @@ def slope_correction(
     TERRAIN_FLATTENING_MODEL: str,
     DEM: str,
     TERRAIN_FLATTENING_ADDITIONAL_LAYOVER_SHADOW_BUFFER: int,
-    angle_band: str = "angle",
 ) -> ImageCollection:
     """
 
@@ -35,11 +37,9 @@ def slope_correction(
         The DEM to be used
     TERRAIN_FLATTENING_ADDITIONAL_LAYOVER_SHADOW_BUFFER : int
         The additional buffer to account for the passive layover and shadow
-    angle_band : str
-        Name of the incidence angle band>
     Returns
     -------
-    ee ImageCollection
+    ImageCollection
         An image collection where radiometric terrain normalization is
         implemented on each image
 
@@ -181,7 +181,7 @@ def slope_correction(
         elevation = DEM.resample("bilinear").reproject(proj, None, 10).clip(geom)
 
         # calculate the look direction
-        heading = ee.Terrain.aspect(image.select(angle_band)).reduceRegion(
+        heading = ee.Terrain.aspect(image.select("angle")).reduceRegion(
             ee.Reducer.mean(), image.geometry(), 1000
         )
 
@@ -194,7 +194,7 @@ def slope_correction(
 
         # the numbering follows the article chapters
         # 2.1.1 Radar geometry
-        theta_iRad = image.select(angle_band).multiply(math.pi / 180)
+        theta_iRad = image.select("angle").multiply(math.pi / 180)
         phi_iRad = ee.Image.constant(heading).multiply(math.pi / 180)
 
         # 2.1.2 Terrain geometry
@@ -241,7 +241,7 @@ def slope_correction(
         # get Layover/Shadow mask
         mask = _masking(alpha_rRad, theta_iRad, TERRAIN_FLATTENING_ADDITIONAL_LAYOVER_SHADOW_BUFFER)
         output = gamma0_flat.mask(mask).rename(bandNames).copyProperties(image)
-        output = ee.Image(output).addBands(image.select(angle_band), None, True)
+        output = ee.Image(output).addBands(image.select("angle"), None, True)
 
         return output.set("system:time_start", image.get("system:time_start"))
 

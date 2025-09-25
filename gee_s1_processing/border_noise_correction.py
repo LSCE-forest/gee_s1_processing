@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Version: v1.1
 Date: 2021-03-11
@@ -7,94 +5,105 @@ Authors: Adopted from Hird et al. 2017 Remote Sensing (supplementary material): 
 Description: This script applied additional border noise correction
 """
 
-import ee
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from . import helper
+
+if TYPE_CHECKING:
+    from ee.image import Image
+
 
 # ---------------------------------------------------------------------------//
 # Additional Border Noise Removal
 # ---------------------------------------------------------------------------//
 
 
-def maskAngLT452(image):
+def maskAngLT452(image: Image) -> Image:
     """
     mask out angles >= 45.23993
 
     Parameters
     ----------
-    image : ee.Image
+    image : Image
         image to apply the border noise masking
 
     Returns
     -------
-    ee.Image
+    Image
         Masked image
 
     """
-    ang = image.select(['angle'])
-    return image.updateMask(ang.lt(45.23993)).set('system:time_start', image.get('system:time_start'))
+    ang = image.select(["angle"])
+    return image.updateMask(ang.lt(45.23993)).set(
+        "system:time_start", image.get("system:time_start")
+    )
 
 
-
-def maskAngGT30(image):
+def maskAngGT30(image: Image) -> Image:
     """
     mask out angles <= 30.63993
 
     Parameters
     ----------
-    image : ee.Image
+    image : Image
         image to apply the border noise masking
 
     Returns
     -------
-    ee.Image
+    Image
         Masked image
 
     """
 
-    ang = image.select(['angle'])
-    return image.updateMask(ang.gt(30.63993)).set('system:time_start', image.get('system:time_start'))
+    ang = image.select(["angle"])
+    return image.updateMask(ang.gt(30.63993)).set(
+        "system:time_start", image.get("system:time_start")
+    )
 
 
-def maskEdge(image):
+def maskEdge(image: Image) -> Image:
     """
     Remove edges.
 
     Parameters
     ----------
-    image : ee.Image
+    image : Image
         image to apply the border noise masking
 
     Returns
     -------
-    ee.Image
+    Image
         Masked image
 
     """
 
-    mask = image.select(0).unitScale(-25, 5).multiply(255).toByte()#.connectedComponents(ee.Kernel.rectangle(1,1), 100)
-    return image.updateMask(mask.select(0)).set('system:time_start', image.get('system:time_start')) 
+    mask = (
+        image.select(0).unitScale(-25, 5).multiply(255).toByte()
+    )  # .connectedComponents(ee.Kernel.rectangle(1,1), 100)
+    return image.updateMask(mask.select(0)).set("system:time_start", image.get("system:time_start"))
 
 
-
-def f_mask_edges(image):
+def f_mask_edges(image: Image) -> Image:
     """
     Function to mask out border noise artefacts
 
     Parameters
     ----------
-    image : ee.Image
+    image : Image
         image to apply the border noise correction to
 
     Returns
     -------
-    ee.Image
+    Image
         Corrected image
 
     """
-    
+
     db_img = helper.lin_to_db(image)
     output = maskAngGT30(db_img)
     output = maskAngLT452(output)
-    #output = maskEdge(output)
+    # output = maskEdge(output)
     output = helper.db_to_lin(output)
-    return output.set('system:time_start', image.get('system:time_start'))
+    return output.set("system:time_start", image.get("system:time_start"))
