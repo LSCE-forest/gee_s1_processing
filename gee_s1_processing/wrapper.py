@@ -7,11 +7,15 @@ Gou Y., Gorelick N.,  Reiche J.
 Description: The modified wrapper function to derive the Sentinel-1 ARD
 """
 
+import logging
+
 import ee
 from ee.imagecollection import ImageCollection
 
 from . import speckle_filter as sf
 from . import terrain_flattening as trf
+
+log = logging.getLogger(__name__)
 
 
 def terrain_normalization_wrapper(
@@ -58,7 +62,7 @@ def terrain_normalization_wrapper(
         ee.Image(DEM),
         TERRAIN_FLATTENING_ADDITIONAL_LAYOVER_SHADOW_BUFFER,
     )
-    print("Terrain normalization is completed")  # noqa: T201, E501
+    log.debug("Terrain normalization is completed")
     return col
 
 
@@ -114,7 +118,7 @@ def speckle_filter_wrapper(
         col = ee.ImageCollection(
             sf.MonoTemporal_Filter(col, SPECKLE_FILTER_KERNEL_SIZE, SPECKLE_FILTER)
         )
-        print("Mono-temporal speckle filtering is completed")  # noqa: T201
+        log.debug("Mono-temporal speckle filtering is completed")
     else:
         col = ee.ImageCollection(
             sf.MultiTemporal_Filter(
@@ -124,6 +128,6 @@ def speckle_filter_wrapper(
                 SPECKLE_FILTER_NR_OF_IMAGES,
             )
         )
-        print("Multi-temporal speckle filtering is completed")  # noqa: T201
+        log.debug("Multi-temporal speckle filtering is completed")
 
     return col
